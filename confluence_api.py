@@ -1,5 +1,7 @@
 """
 title: Confluence
+description: This tool allows you to search for and retrieve content from Confluence.
+repository: https://github.com/RomainNeup/open-webui-utilities
 author: @romainneup
 author_url: https://github.com/RomainNeup
 funding_url: https://paypal.me/minewhite
