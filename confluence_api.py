@@ -96,7 +96,6 @@ class Confluence:
 class Tools:
     def __init__(self):
         self.valves = self.Valves()
-        self.confluence = Confluence(self.valves.username, self.valves.api_key, self.valves.base_url)
         pass
 
     class Valves(BaseModel):
@@ -118,13 +117,14 @@ class Tools:
         :param query: The text to search for on Confluence
         :return: A list of search results from Confluence in JSON format (id, title, body, link). If no results are found, an empty list is returned.
         """
+        confluence = Confluence(self.valves.username, self.valves.api_key, self.valves.base_url)
         event_emitter = EventEmitter(__event_emitter__)
         await event_emitter.emit_status(f"Searching for '{query}' on Confluence...", False)
         try:
-            searchResponse = self.confluence.search(query)
+            searchResponse = confluence.search(query)
             results = []
             for item in searchResponse:
-                result = self.confluence.get_page(item)
+                result = confluence.get_page(item)
                 await event_emitter.emit_source(result["title"], result["link"], result["body"])
                 results.append(result)
             await event_emitter.emit_status(f"Search for '{query}' on Confluence complete. ({len(searchResponse)} results found)", True)
@@ -146,10 +146,11 @@ class Tools:
         :param page_id: The ID of the page on Confluence
         :return: The content of the page on Confluence in JSON format (title, body, link). If the page is not found, an error message is returned.
         """
+        confluence = Confluence(self.valves.username, self.valves.api_key, self.valves.base_url)
         event_emitter = EventEmitter(__event_emitter__)
         await event_emitter.emit_status(f"Retrieving page '{page_id}' from Confluence...", False)
         try:
-            result = self.confluence.get_page(page_id)
+            result = confluence.get_page(page_id)
             await event_emitter.emit_status(f"Retrieved page '{page_id}' from Confluence.", True)
             await event_emitter.emit_source(result["title"], result["link"], result["body"])
             return json.dumps(result)
