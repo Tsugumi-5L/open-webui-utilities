@@ -75,6 +75,15 @@ class Jira:
             "link": f"{self.base_url}/browse/{issue_id}",
         }
 
+    def search(self, query: str):
+        endpoint = "search"
+        params = {"jql": f"text ~ '{query}'", "maxResults": 5}
+        rawResponse = self.get(endpoint, params)
+        response = []
+        for item in rawResponse["issues"]:
+            response.append(item["key"])
+        return response
+
 
 class Tools:
     def __init__(self):
