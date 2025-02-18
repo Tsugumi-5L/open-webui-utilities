@@ -6,11 +6,12 @@ author: @romainneup
 author_url: https://github.com/RomainNeup
 funding_url: https://paypal.me/minewhite
 requirements: markdownify
-version: 0.1.0
+version: 0.1.1
 changelog:
 - 0.0.1 - Initial code base.
 - 0.0.2 - Fix Valves variables
 - 0.1.0 - Split Confuence search and Confluence get page
+- 0.1.1 - Split Confluence search by title and by content
 """
 
 import base64
@@ -70,10 +71,22 @@ class Confluence:
         response = requests.post(url, json=data, headers=self.headers)
         return response.json()
 
-    def search(self, query: str):
+    def search_by_title(self, query: str):
         endpoint = "content/search"
         params = {
-            "cql": f"(title ~ '{query}' OR text ~ '{query}') AND type = 'page'",
+            "cql": f"title ~ '{query}' AND type='page'",
+            "limit": 5,
+        }
+        rawResponse = self.get(endpoint, params)
+        response = []
+        for item in rawResponse["results"]:
+            response.append(item["id"])
+        return response
+
+    def search_by_content(self, query: str):
+        endpoint = "content/search"
+        params = {
+            "cql": f"text~'{query}' AND type='page'",
             "limit": 5,
         }
         rawResponse = self.get(endpoint, params)
@@ -118,25 +131,34 @@ class Tools:
     async def search_confluence(
         self,
         query: str,
+        type: str,
         __event_emitter__: Callable[[dict], Awaitable[None]],
         __user__: dict = {},
     ) -> List[Dict[str, Any]]:
         """
         Search for a query on Confluence. This returns the result of the search on Confluence.
         Use it to search for a query on Confluence. When a user mentions a search on Confluence, this must be used.
-        Note: This returns a list of pages that match the search query. The user must request the specific page they want to view.
-        :param query: The text to search for on Confluence
+        It can search by content or by title.
+        Note: This returns a list of pages that match the search query.
+        :param query: The text to search for on Confluence or the title of the page if asked to search by title. MUST be a string.
+        :param type: The type of search to perform ('content' or 'title')
         :return: A list of search results from Confluence in JSON format (id, title, body, link). If no results are found, an empty list is returned.
         """
         confluence = Confluence(
             self.valves.username, self.valves.api_key, self.valves.base_url
         )
         event_emitter = EventEmitter(__event_emitter__)
+
+        search_type = type.lower()
+
         await event_emitter.emit_status(
-            f"Searching for '{query}' on Confluence...", False
+            f"Searching for {search_type} '{query}' on Confluence...", False
         )
         try:
-            searchResponse = confluence.search(query)
+            if search_type == "title":
+                searchResponse = confluence.search_by_title(query)
+            else:
+                searchResponse = confluence.search_by_content(query)
             results = []
             for item in searchResponse:
                 result = confluence.get_page(item)
@@ -145,12 +167,12 @@ class Tools:
                 )
                 results.append(result)
             await event_emitter.emit_status(
-                f"Search for '{query}' on Confluence complete. ({len(searchResponse)} results found)",
+                f"Search for {search_type} '{query}' on Confluence complete. ({len(searchResponse)} results found)",
                 True,
             )
             return json.dumps(results)
         except Exception as e:
             await event_emitter.emit_status(
-                f"Failed to search for '{query}': {e}.", True, True
+                f"Failed to search for {search_type} '{query}': {e}.", True, True
             )
             return f"Error: {e}"
