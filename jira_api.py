@@ -1,3 +1,16 @@
+"""
+title: Jira
+description: This tool allows you to search for and retrieve content from Jira.
+repository: https://github.com/RomainNeup/open-webui-utilities
+author: @romainneup
+author_url: https://github.com/RomainNeup
+funding_url: https://paypal.me/minewhite
+version: 0.0.1
+changelog:
+- 0.0.1 - Initial code base.
+"""
+
+
 import base64
 import json
 from typing import Any, Awaitable, Callable, Dict
