@@ -4,7 +4,7 @@ description: This tool allows you to search for and retrieve content from Conflu
 repository: https://github.com/RomainNeup/open-webui-utilities
 author: @romainneup
 author_url: https://github.com/RomainNeup
-funding_url: https://paypal.me/minewhite
+funding_url: https://github.com/sponsors/RomainNeup
 requirements: markdownify
 version: 0.1.1
 changelog:

@@ -4,7 +4,7 @@ description: This tool allows you to retrieve content from a specific page on Co
 repository: https://github.com/RomainNeup/open-webui-utilities
 author: @romainneup
 author_url: https://github.com/RomainNeup
-funding_url: https://paypal.me/minewhite
+funding_url: https://github.com/sponsors/RomainNeup
 requirements: markdownify
 version: 0.1.0
 changelog:

@@ -4,7 +4,7 @@ description: This tool allows you to search for and retrieve content from Jira.
 repository: https://github.com/RomainNeup/open-webui-utilities
 author: @romainneup
 author_url: https://github.com/RomainNeup
-funding_url: https://paypal.me/minewhite
+funding_url: https://github.com/sponsors/RomainNeup
 version: 0.0.1
 changelog:
 - 0.0.1 - Initial code base.
