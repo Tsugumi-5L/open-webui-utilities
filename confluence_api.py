@@ -6,9 +6,10 @@ author: @romainneup
 author_url: https://github.com/RomainNeup
 funding_url: https://paypal.me/minewhite
 requirements: markdownify
-version: 0.0.1
+version: 0.0.2
 changelog:
 - 0.0.1 - Initial code base.
+- 0.0.2 - Fix Valves variables
 """
 
 import base64
