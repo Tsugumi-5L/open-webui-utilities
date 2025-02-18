@@ -60,12 +60,12 @@ class Confluence:
         self.headers = self.authenticate(username, api_key)
         pass
 
-    def get(self, endpoint: str, params: Dict[str, Any]):
+    def get(self, endpoint: str, params: Dict[str, Any]) -> Dict[str, Any]:
         url = f"{self.base_url}/rest/api/{endpoint}"
         response = requests.get(url, params=params, headers=self.headers)
         return response.json()
 
-    def get_page(self, page_id: str):
+    def get_page(self, page_id: str) -> Dict[str, Any]:
         endpoint = f"content/{page_id}"
         params = {"expand": "body.view", "include-version": "false"}
         result = self.get(endpoint, params)
@@ -76,7 +76,7 @@ class Confluence:
             "link": f"{self.base_url}{result['_links']['webui']}",
         }
 
-    def authenticate(self, username: str, api_key: str):
+    def authenticate(self, username: str, api_key: str) -> Dict[str, str]:
         auth_string = f"{username}:{api_key}"
         encoded_auth_string = base64.b64encode(auth_string.encode("utf-8")).decode(
             "utf-8"
@@ -103,7 +103,7 @@ class Tools:
         page_id: str,
         __event_emitter__: Callable[[dict], Awaitable[None]],
         __user__: dict = {}
-    ) -> Dict[str, Any]:
+    ) -> str:
         """
         Get the content of a page on Confluence. This returns the content of a specific page on Confluence.
         Use it to get the content of a specific page on Confluence. When a user requests a specific page, this must be used.

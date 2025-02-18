@@ -61,17 +61,17 @@ class Confluence:
         self.headers = self.authenticate(username, api_key)
         pass
 
-    def get(self, endpoint: str, params: Dict[str, Any]):
+    def get(self, endpoint: str, params: Dict[str, Any]) -> Dict[str, Any]:
         url = f"{self.base_url}/rest/api/{endpoint}"
         response = requests.get(url, params=params, headers=self.headers)
         return response.json()
 
-    def post(self, endpoint: str, data: Dict[str, Any]):
+    def post(self, endpoint: str, data: Dict[str, Any]) -> Dict[str, Any]:
         url = f"{self.base_url}/rest/api/{endpoint}"
         response = requests.post(url, json=data, headers=self.headers)
         return response.json()
 
-    def search_by_title(self, query: str):
+    def search_by_title(self, query: str) -> List[str]:
         endpoint = "content/search"
         params = {
             "cql": f"title ~ '{query}' AND type='page'",
@@ -83,7 +83,7 @@ class Confluence:
             response.append(item["id"])
         return response
 
-    def search_by_content(self, query: str):
+    def search_by_content(self, query: str) -> List[str]:
         endpoint = "content/search"
         params = {
             "cql": f"text~'{query}' AND type='page'",
@@ -95,7 +95,7 @@ class Confluence:
             response.append(item["id"])
         return response
 
-    def get_page(self, page_id: str):
+    def get_page(self, page_id: str) -> Dict[str, str]:
         endpoint = f"content/{page_id}"
         params = {"expand": "body.view", "include-version": "false"}
         result = self.get(endpoint, params)
@@ -106,7 +106,7 @@ class Confluence:
             "link": f"{self.base_url}{result['_links']['webui']}",
         }
 
-    def authenticate(self, username: str, api_key: str):
+    def authenticate(self, username: str, api_key: str) -> Dict[str, str]:
         auth_string = f"{username}:{api_key}"
         encoded_auth_string = base64.b64encode(auth_string.encode("utf-8")).decode(
             "utf-8"
@@ -134,7 +134,7 @@ class Tools:
         type: str,
         __event_emitter__: Callable[[dict], Awaitable[None]],
         __user__: dict = {},
-    ) -> List[Dict[str, Any]]:
+    ) -> str:
         """
         Search for a query on Confluence. This returns the result of the search on Confluence.
         Use it to search for a query on Confluence. When a user mentions a search on Confluence, this must be used.
