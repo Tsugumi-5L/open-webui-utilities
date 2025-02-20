@@ -85,9 +85,15 @@ class Confluence:
 
     def search_by_content(self, query: str) -> List[str]:
         endpoint = "content/search"
+        # Split query into individual terms and join them with OR such that each word is optional
+        terms = query.split()
+        if terms:
+            cql_terms = " OR ".join([f'text ~ "{term}"' for term in terms])
+        else:
+            cql_terms = f'text ~ "{query}"'
         params = {
-            "cql": f"text~'{query}' AND type='page'",
-            "limit": 5,
+            'cql': f'({cql_terms}) AND type="page"',
+            'limit': 5
         }
         rawResponse = self.get(endpoint, params)
         response = []
