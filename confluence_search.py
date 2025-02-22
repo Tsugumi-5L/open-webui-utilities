@@ -73,9 +73,15 @@ class Confluence:
 
     def search_by_title(self, query: str) -> List[str]:
         endpoint = "content/search"
+        # Split query into individual terms and join them with OR such that each word is optional
+        terms = query.split()
+        if terms:
+            cql_terms = " OR ".join([f'title ~ "{term}"' for term in terms])
+        else:
+            cql_terms = f'title ~ "{query}"'
         params = {
-            "cql": f"title ~ '{query}' AND type='page'",
-            "limit": 5,
+            'cql': f'({cql_terms}) AND type="page"',
+            'limit': 5
         }
         rawResponse = self.get(endpoint, params)
         response = []
@@ -85,9 +91,33 @@ class Confluence:
 
     def search_by_content(self, query: str) -> List[str]:
         endpoint = "content/search"
+        # Split query into individual terms and join them with OR such that each word is optional
+        terms = query.split()
+        if terms:
+            cql_terms = " OR ".join([f'text ~ "{term}"' for term in terms])
+        else:
+            cql_terms = f'text ~ "{query}"'
         params = {
-            "cql": f"text~'{query}' AND type='page'",
-            "limit": 5,
+            'cql': f'({cql_terms}) AND type="page"',
+            'limit': 5
+        }
+        rawResponse = self.get(endpoint, params)
+        response = []
+        for item in rawResponse["results"]:
+            response.append(item["id"])
+        return response
+
+    def search_by_title_and_content(self, query: str) -> List[str]:
+        endpoint = "content/search"
+        # Split query into words and join them with OR; each word is optional.
+        terms = query.split()
+        if terms:
+            cql_terms = " OR ".join([f'title ~ "{term}" OR text ~ "{term}"' for term in terms])
+        else:
+            cql_terms = f'title ~ "{query}" OR text ~ "{query}"'
+        params = {
+            'cql': f'({cql_terms}) AND type="page"',
+            'limit': 5
         }
         rawResponse = self.get(endpoint, params)
         response = []
@@ -141,7 +171,7 @@ class Tools:
         It can search by content or by title.
         Note: This returns a list of pages that match the search query.
         :param query: The text to search for on Confluence or the title of the page if asked to search by title. MUST be a string.
-        :param type: The type of search to perform ('content' or 'title')
+        :param type: The type of search to perform ('content' or 'title' or 'title_and_content')
         :return: A list of search results from Confluence in JSON format (id, title, body, link). If no results are found, an empty list is returned.
         """
         confluence = Confluence(
@@ -157,8 +187,10 @@ class Tools:
         try:
             if search_type == "title":
                 searchResponse = confluence.search_by_title(query)
-            else:
+            elif search_type == "content":
                 searchResponse = confluence.search_by_content(query)
+            else:
+                searchResponse = confluence.search_by_title_and_content(query)
             results = []
             for item in searchResponse:
                 result = confluence.get_page(item)
