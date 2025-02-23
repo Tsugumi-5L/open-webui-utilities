@@ -1,6 +1,6 @@
 """
-title: Jira
-description: This tool allows you to search for and retrieve content from Jira.
+title: Jira Search
+description: This tool allows you to search issues from Jira.
 repository: https://github.com/RomainNeup/open-webui-utilities
 author: @romainneup
 author_url: https://github.com/RomainNeup
@@ -8,6 +8,7 @@ funding_url: https://github.com/sponsors/RomainNeup
 version: 0.0.1
 changelog:
 - 0.0.1 - Initial code base.
+- 0.0.2 - Implement Jira search
 """
 
 
@@ -69,28 +70,14 @@ class Jira:
         response = requests.get(url, params=params, headers=self.headers)
         return response.json()
 
-    def post(self, endpoint: str, data: Dict[str, Any]):
-        url = f"{self.base_url}/rest/api/3/{endpoint}"
-        response = requests.post(url, json=data, headers=self.headers)
-        return response.json()
-
-    def get_issue(self, issue_id: str):
-        endpoint = f"issue/{issue_id}"
-        result = self.get(
-            endpoint,
-            {"fields": "summary,description,status", "expand": "renderedFields"},
-        )
-
-        return {
-            "title": result["fields"]["summary"],
-            "description": result["renderedFields"]["description"],
-            "status": result["fields"]["status"]["name"],
-            "link": f"{self.base_url}/browse/{issue_id}",
-        }
-
     def search(self, query: str):
         endpoint = "search"
-        params = {"jql": f"text ~ '{query}'", "maxResults": 5}
+        terms = query.split()
+        if terms:
+            cql_terms = " OR ".join([f'text ~ "{term}"' for term in terms])
+        else:
+            cql_terms = f'text ~ "{query}"'
+        params = {"jql": f"{cql_terms}", "maxResults": 5}
         rawResponse = self.get(endpoint, params)
         response = []
         for item in rawResponse["issues"]:
@@ -108,29 +95,34 @@ class Tools:
         api_key: str = Field("", description="Your API key here")
         base_url: str = Field("", description="Your Jira base URL here")
 
-    async def get_issue(
+    async def search_jira(
         self,
-        issue_id: str,
+        query: str,
         __event_emitter__: Callable[[dict], Awaitable[None]],
         __user__: dict = {},
-    ):
+    ) -> str:
         """
-        Get a Jira issue by its ID. The response includes the title, description as HTML, status, and link to the issue.
-        :param issue_id: The ID of the issue.
-        :return: A response in JSON format (title, description, status, link).
+        Search for a query on Jira. This returns the result of the search on Jira.
+        Use it to search for a query on Jira. When a user mentions a search on Jira, this must be used.
+        Note: This returns a list of issues that match the search query.
+        :param query: The text to search for on Jira. MUST be a string.
+        :return: A list of search results from Jira in JSON format (key). If no results are found, an empty list is returned.
         """
         jira = Jira(self.valves.username, self.valves.api_key, self.valves.base_url)
         event_emitter = EventEmitter(__event_emitter__)
+
+        await event_emitter.emit_status(
+            f"Searching for '{query}' on Jira...", False
+        )
         try:
-            await event_emitter.emit_status(f"Getting issue {issue_id}", False)
-            response = jira.get_issue(issue_id)
-            await event_emitter.emit_source(
-                response["title"], response["link"], response["description"], True
+            searchResponse = jira.search(query)
+            await event_emitter.emit_status(
+                f"Search for '{query}' on Jira complete. ({len(searchResponse)} results found)",
+                True,
             )
-            await event_emitter.emit_status(f"Got issue {issue_id}", True)
-            return json.dumps(response)
+            return json.dumps(searchResponse)
         except Exception as e:
             await event_emitter.emit_status(
-                f"Failed to get issue {issue_id}: {e}", True, True
+                f"Failed to search for '{query}' on Jira: {e}", True, True
             )
             return f"Error: {e}"
