@@ -17,7 +17,7 @@ To install a tool, you must have admin privileges in your workspace. Follow thes
 This tool retrieves a Confluence page by its ID.
 
 - Configuration:
-    - Username: example@mail.fr
+    - Username: example@mail.com
     - API Key: 1234ABCD
     - Base URL: https://example.atlassian.net/wiki
 - Usage: Simply run the script and provide the Confluence page ID as an argument. The tool will return the corresponding page content.
@@ -26,7 +26,7 @@ This tool retrieves a Confluence page by its ID.
 This tool searches for Confluence pages using a given query string.
 
 - Configuration:
-    - Username: example@mail.fr
+    - Username: example@mail.com
     - API Key: 1234ABCD
     - Base URL: https://example.atlassian.net/wiki
 - Usage: Run the script and provide the search query as an argument. The tool will return the results of the search.
@@ -35,7 +35,7 @@ This tool searches for Confluence pages using a given query string.
 This tool retrieves Jira issues based on ID.
 
 - Configuration:
-    - Username: example@mail.fr
+    - Username: example@mail.com
     - API Key: 1234ABCD
     - Base URL: https://example.atlassian.net
 - Usage: Run the script and provide the ID as arguments. The tool will return the corresponding Jira issues.
@@ -44,7 +44,7 @@ This tool retrieves Jira issues based on ID.
 This tool searches for Jira issues using a given query string.
 
 - Configuration:
-    - Username: example@mail.fr
+    - Username: example@mail.com
     - API Key: 1234ABCD
     - Base URL: https://example.atlassian.net
 - Usage: Run the script and provide the search query as an argument. The tool will return the results of the search.
