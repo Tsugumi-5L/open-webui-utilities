@@ -5,7 +5,7 @@ repository: https://github.com/RomainNeup/open-webui-utilities
 author: @romainneup
 author_url: https://github.com/RomainNeup
 funding_url: https://github.com/sponsors/RomainNeup
-version: 0.0.1
+version: 0.0.2
 changelog:
 - 0.0.1 - Initial code base.
 - 0.0.2 - Implement Jira search
