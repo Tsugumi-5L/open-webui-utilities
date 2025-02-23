@@ -6,12 +6,13 @@ author: @romainneup
 author_url: https://github.com/RomainNeup
 funding_url: https://github.com/sponsors/RomainNeup
 requirements: markdownify
-version: 0.1.1
+version: 0.1.2
 changelog:
 - 0.0.1 - Initial code base.
 - 0.0.2 - Fix Valves variables
 - 0.1.0 - Split Confuence search and Confluence get page
 - 0.1.1 - Split Confluence search by title and by content
+- 0.1.2 - Improve search by splitting query into words
 """
 
 import base64
