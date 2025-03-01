@@ -10,6 +10,7 @@ changelog:
 - 0.0.1 - Initial code base.
 - 0.0.2 - Implement Jira search
 - 0.1.0 - Add support for Personal Access Token authentication and user settings
+- 0.1.1 - Limit setting for search results
 """
 
 
@@ -64,14 +65,14 @@ class Jira:
         response = requests.get(url, params=params, headers=self.headers)
         return response.json()
 
-    def search(self, query: str):
+    def search(self, query: str, limit: int = 5) -> Dict[str, Any]:
         endpoint = "search"
         terms = query.split()
         if terms:
             cql_terms = " OR ".join([f'text ~ "{term}"' for term in terms])
         else:
             cql_terms = f'text ~ "{query}"'
-        params = {"jql": f"{cql_terms}", "maxResults": 5}
+        params = {"jql": f"{cql_terms}", "maxResults": limit}
         rawResponse = self.get(endpoint, params)
         response = []
         for item in rawResponse["issues"]:
@@ -111,6 +112,9 @@ class Tools:
         )
         api_key: str = Field(
             "ABCD1234", description="Default API key or personal access token"
+        )
+        result_limit: int = Field(
+            5, description="The maximum number of search results to return", required=True
         )
         pass
 
@@ -161,7 +165,7 @@ class Tools:
             f"Searching for '{query}' on Jira...", False
         )
         try:
-            searchResponse = jira.search(query)
+            searchResponse = jira.search(query, self.valves.result_limit)
             await event_emitter.emit_status(
                 f"Search for '{query}' on Jira complete. ({len(searchResponse)} results found)",
                 True,
