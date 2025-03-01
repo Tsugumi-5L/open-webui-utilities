@@ -5,10 +5,11 @@ repository: https://github.com/RomainNeup/open-webui-utilities
 author: @romainneup
 author_url: https://github.com/RomainNeup
 funding_url: https://github.com/sponsors/RomainNeup
-version: 0.0.2
+version: 0.1.0
 changelog:
 - 0.0.1 - Initial code base.
 - 0.0.2 - Split Jira search and Jira get issue
+- 0.1.0 - Add support for Personal Access Token authentication and user settings
 """
 
 
@@ -53,26 +54,16 @@ class EventEmitter:
 
 
 class Jira:
-    def __init__(self, username: str, api_key: str, base_url: str):
+    def __init__(self, username: str, api_key: str, base_url: str, api_key_auth: bool = True):
         self.base_url = base_url
-        self.headers = self.authenticate(username, api_key)
+        self.headers = self.authenticate(username, api_key, api_key_auth)
         pass
-
-    def authenticate(self, username: str, api_key: str):
-        auth_string = f"{username}:{api_key}"
-        encoded_auth_string = base64.b64encode(auth_string.encode("utf-8")).decode(
-            "utf-8"
-        )
-        return {"Authorization": "Basic " + encoded_auth_string}
 
     def get(self, endpoint: str, params: Dict[str, Any]):
         url = f"{self.base_url}/rest/api/3/{endpoint}"
         response = requests.get(url, params=params, headers=self.headers)
-        return response.json()
-
-    def post(self, endpoint: str, data: Dict[str, Any]):
-        url = f"{self.base_url}/rest/api/3/{endpoint}"
-        response = requests.post(url, json=data, headers=self.headers)
+        if not response.ok:
+            raise Exception(f"Failed to get data from Confluence: {response.text}")
         return response.json()
 
     def get_issue(self, issue_id: str):
@@ -89,19 +80,21 @@ class Jira:
             "link": f"{self.base_url}/browse/{issue_id}",
         }
 
-    def search(self, query: str):
-        endpoint = "search"
-        terms = query.split()
-        if terms:
-            cql_terms = " OR ".join([f'text ~ "{term}"' for term in terms])
+    def authenticate_api_key(self, username: str, api_key: str) -> Dict[str, str]:
+        auth_string = f"{username}:{api_key}"
+        encoded_auth_string = base64.b64encode(auth_string.encode("utf-8")).decode(
+            "utf-8"
+        )
+        return {"Authorization": "Basic " + encoded_auth_string}
+
+    def authenticate_personal_access_token(self, access_token: str) -> Dict[str, str]:
+        return {"Authorization": f"Bearer {access_token}"}
+
+    def authenticate(self, username: str, api_key: str, api_key_auth: bool) -> Dict[str, str]:
+        if api_key_auth:
+            return self.authenticate_api_key(username, api_key)
         else:
-            cql_terms = f'text ~ "{query}"'
-        params = {"jql": f"{cql_terms}", "maxResults": 5}
-        rawResponse = self.get(endpoint, params)
-        response = []
-        for item in rawResponse["issues"]:
-            response.append(item["key"])
-        return response
+            return self.authenticate_personal_access_token(api_key)
 
 
 class Tools:
@@ -110,9 +103,33 @@ class Tools:
         pass
 
     class Valves(BaseModel):
-        username: str = Field("", description="Your username here")
-        api_key: str = Field("", description="Your API key here")
-        base_url: str = Field("", description="Your Jira base URL here")
+        base_url: str = Field(
+            "https://example.atlassian.net/wiki",
+            description="The base URL of your Confluence instance",
+        )
+        username: str = Field(
+            "example@example.com",
+            description="Default username (leave empty for personal access token)",
+        )
+        api_key: str = Field(
+            "ABCD1234", description="Default API key or personal access token"
+        )
+        pass
+
+    class UserValves(BaseModel):
+        api_key_auth: bool = Field(
+            True,
+            description="Use API key authentication; disable this to use a personal access token instead.",
+        )
+        username: str = Field(
+            "",
+            description="Username, typically your email address; leave empty if using a personal access token or default settings.",
+        )
+        api_key: str = Field(
+            "",
+            description="API key or personal access token; leave empty to use the default settings.",
+        )
+        pass
 
     async def get_issue(
         self,
@@ -125,15 +142,28 @@ class Tools:
         :param issue_id: The ID of the issue.
         :return: A response in JSON format (title, description, status, link).
         """
-        jira = Jira(self.valves.username, self.valves.api_key, self.valves.base_url)
         event_emitter = EventEmitter(__event_emitter__)
+        
+        # Get the username and API key
+        if __user__ and "valves" in __user__:
+            user_valves = __user__["valves"]
+            api_key_auth = user_valves.api_key_auth
+            api_username = user_valves.username or self.valves.username
+            api_key = user_valves.api_key or self.valves.api_key
+        else:
+            api_username = self.valves.username
+            api_key = self.valves.api_key
+            api_key_auth = True
+
+        jira = Jira(api_username, api_key, self.valves.base_url, api_key_auth)
+
+        await event_emitter.emit_status(f"Getting issue {issue_id}", False)
         try:
-            await event_emitter.emit_status(f"Getting issue {issue_id}", False)
             response = jira.get_issue(issue_id)
+            await event_emitter.emit_status(f"Got issue {issue_id}", True)
             await event_emitter.emit_source(
                 response["title"], response["link"], response["description"], True
             )
-            await event_emitter.emit_status(f"Got issue {issue_id}", True)
             return json.dumps(response)
         except Exception as e:
             await event_emitter.emit_status(
