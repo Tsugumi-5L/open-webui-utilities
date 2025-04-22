@@ -564,11 +564,20 @@ class Confluence:
     """Interface for Confluence API operations"""
 
     def __init__(
-        self, username: str, api_key: str, base_url: str, api_key_auth: bool = True, ssl_verify: bool = True
+        self,
+        username: str,
+        api_key: str,
+        base_url: str,
+        included_spaces: Optional[List[str]] = None,
+        excluded_spaces: Optional[List[str]] = None,
+        api_key_auth: bool = True,
+        ssl_verify: bool = True
     ):
         self.base_url = base_url
         self.ssl_verify = ssl_verify
         self.headers = self.authenticate(username, api_key, api_key_auth)
+        self.included_spaces = included_spaces
+        self.excluded_spaces = excluded_spaces
 
     def get(self, endpoint: str, params: Dict[str, Any]) -> Dict[str, Any]:
         """Make a GET request to the Confluence API"""
@@ -605,7 +614,14 @@ class Confluence:
             cql_terms = " OR ".join(
                 [f'title ~ "{term}" OR text ~ "{term}"' for term in terms]
             )
+        
+        if self.included_spaces is not None and len(self.included_spaces) > 0:
+            quoted_spaces = [f"'{space}'" for space in self.included_spaces]
+            cql_terms += f' AND space in ({", ".join(quoted_spaces)})'
 
+        if self.excluded_spaces is not None and len(self.excluded_spaces) > 0:
+            quoted_excluded_spaces = [f"'{space}'" for space in self.excluded_spaces]
+            cql_terms += f' AND space not in ({", ".join(quoted_excluded_spaces)})'
         return cql_terms
 
     def search_confluence(
@@ -780,6 +796,14 @@ class Tools:
             True,
             description="Split search query into words for better search results.",
         )
+        included_confluence_spaces: str = Field(
+            "",
+            description="Comma-separated list of Confluence spaces to search in; leave empty to search all spaces.",
+        )
+        excluded_confluence_spaces: str = Field(
+            "",
+            description="Comma-separated list of Confluence spaces to exclude from the search; leave empty to include all spaces.",
+        )
         pass
 
     # Get content from Confluence
@@ -812,6 +836,12 @@ class Tools:
                 api_username = user_valves.username or self.valves.username
                 api_key = user_valves.api_key or self.valves.api_key
                 split_terms = user_valves.split_terms
+                included_confluence_spaces = user_valves.included_confluence_spaces.split(",") if user_valves.included_confluence_spaces else None
+                if included_confluence_spaces:
+                    included_confluence_spaces = [space.strip() for space in included_confluence_spaces]
+                excluded_confluence_spaces = user_valves.excluded_confluence_spaces.split(",") if user_valves.excluded_confluence_spaces else None
+                if excluded_confluence_spaces:
+                    excluded_confluence_spaces = [space.strip() for space in excluded_confluence_spaces]
             else:
                 api_username = self.valves.username
                 api_key = self.valves.api_key
@@ -864,7 +894,13 @@ class Tools:
             # Create Confluence client with proper error handling
             try:
                 confluence = Confluence(
-                    api_username, api_key, self.valves.base_url, api_key_auth, self.valves.ssl_verify
+                    username=api_username,
+                    api_key=api_key,
+                    base_url=self.valves.base_url,
+                    api_key_auth=api_key_auth,
+                    ssl_verify=self.valves.ssl_verify,
+                    included_spaces=included_confluence_spaces,
+                    excluded_spaces=excluded_confluence_spaces,
                 )
             except ConfluenceAuthError as e:
                 await event_emitter.emit_status(
